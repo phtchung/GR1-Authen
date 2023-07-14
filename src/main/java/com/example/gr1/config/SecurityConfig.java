@@ -1,11 +1,14 @@
 package com.example.gr1.config;
 
+import com.example.gr1.controller.AdminController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,11 +21,16 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import static com.example.gr1.user.Permission.*;
+import static com.example.gr1.user.Role.ADMIN;
+import static com.example.gr1.user.Role.MANAGER;
+
 
 @RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
 @EnableWebMvc
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -48,8 +56,23 @@ public class SecurityConfig {
         http
                 .csrf().disable()
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers(HttpMethod.POST, "/api/v1/login/**", "/api/v1/register/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/**").permitAll()
+
+                        .requestMatchers("/api/v1/mangament/**").hasAnyRole(ADMIN.name(), MANAGER.name())
+
+                        .requestMatchers(HttpMethod.GET,"api/v1/management/**").hasAnyAuthority(ADMIN_READ.name(),MANAGER_READ.name())
+                        .requestMatchers(HttpMethod.POST,"api/v1/management/**").hasAnyAuthority(ADMIN_CREATE.name(),MANAGER_CREATE.name())
+                        .requestMatchers(HttpMethod.PUT,"api/v1/management/**").hasAnyAuthority(ADMIN_UPDATE.name(),MANAGER_UPDATE.name())
+                        .requestMatchers(HttpMethod.DELETE,"api/v1/management/**").hasAnyAuthority(ADMIN_DELETE.name(),MANAGER_DELETE.name())
+
+                        .requestMatchers("/api/v1/admin/**").hasRole(ADMIN.name())
+
+                        .requestMatchers(HttpMethod.GET,"api/v1/admin/**").hasAuthority(ADMIN_READ.name())
+                        .requestMatchers(HttpMethod.POST,"api/v1/admin/**").hasAuthority(ADMIN_CREATE.name())
+                        .requestMatchers(HttpMethod.PUT,"api/v1/admin/**").hasAuthority(ADMIN_UPDATE.name())
+                        .requestMatchers(HttpMethod.DELETE,"api/v1/admin/**").hasAuthority(ADMIN_DELETE.name())
+
+
                         .anyRequest().authenticated())
                 .sessionManagement(customizer -> customizer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
